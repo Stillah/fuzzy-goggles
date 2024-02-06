@@ -1,5 +1,3 @@
-//Ruslan Gatiatullin
-
 #include <bits/stdc++.h>
 using namespace std;
 typedef long long ll;
@@ -83,27 +81,3 @@ public:
     bool isEmpty() {return mapSize == 0; }
 
 };
-
-int main() {
-    ios::sync_with_stdio(false); cin.tie(); cout.tie(); //fast input and output
-    int n, m, numberOfUniqueWords = 0;
-    cin >> n;
-    string in;
-    HashMap<string, int> frequencyN, frequencyM;
-    vector<string> output;
-    for (int i = 0; i < n; i++) cin >> in, frequencyN.put(in, 1);
-    cin >> m;
-
-    for (int i = 0; i < m; i++) {
-        cin >> in;
-        if (frequencyM.get(in) == 0) {
-            frequencyM.put(in, 1);
-            if (frequencyN.get(in) == 0) output.push_back(in), numberOfUniqueWords++;
-        }
-    }
-
-    cout << numberOfUniqueWords << "\n";
-    for (const auto& out: output)
-        if (!out.empty()) cout << out << "\n";
-    return 0;
-}
