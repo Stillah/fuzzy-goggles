@@ -44,7 +44,7 @@ public:
     }
 
     void recalculate(int v) {
-        tree[v].sum = tree[2*v].sum + tree[2*v + 1].sum;
+        tree[v].sum = func(tree[2*v].sum, tree[2*v + 1].sum);
     }
 
     T action(int v, int vl, int vr, int ql, int qr) {
