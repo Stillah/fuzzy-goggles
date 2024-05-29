@@ -39,7 +39,7 @@ public:
         int n = 1;
         while (n < size) n *= 2;
 
-        tree.assign(2*n, Node(identity, false, 0));
+        tree.assign(2*n, Node<T>(identity, false, 0));
         sz = tree.size() / 2;
     }
 
