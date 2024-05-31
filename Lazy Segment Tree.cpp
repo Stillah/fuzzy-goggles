@@ -2,7 +2,7 @@
 #define mod 1000000007
 using namespace std;
 typedef long long ll;
-
+//INDEXING IN THE TREE STARTS FROM 1
 template <typename T>
 class Node {
 public:
