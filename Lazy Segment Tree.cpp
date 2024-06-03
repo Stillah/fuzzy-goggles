@@ -25,7 +25,7 @@ public:
         int n = 1;
         while (n < a.size()) n *= 2;
 
-        tree.assign(2*n, Node<T>(identity, false, 0));
+        tree.assign(2*n, Node<T>(identity, false, identity));
         sz = tree.size() / 2;
 
         for (int i = 0; i < a.size(); i++)
@@ -39,7 +39,7 @@ public:
         int n = 1;
         while (n < size) n *= 2;
 
-        tree.assign(2*n, Node<T>(identity, false, 0));
+        tree.assign(2*n, Node<T>(identity, false, identity));
         sz = tree.size() / 2;
     }
 
