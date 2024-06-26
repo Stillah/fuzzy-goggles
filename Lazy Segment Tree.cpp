@@ -21,7 +21,7 @@ public:
     int sz;
     T identity = 0;
 
-    explicit SegmentTree(vector<T>& a) {
+    explicit SegmentTree(vector<T>& a) noexcept {
         int n = 1;
         while (n < a.size()) n *= 2;
 
@@ -35,7 +35,7 @@ public:
             recalculate(i);
     }
 
-    explicit SegmentTree(int size) {
+    explicit SegmentTree(int size) noexcept {
         int n = 1;
         while (n < size) n *= 2;
 
@@ -43,11 +43,11 @@ public:
         sz = tree.size() / 2;
     }
 
-    void recalculate(int v) {
+    void recalculate(int v) noexcept {
         tree[v].sum = func(tree[2*v].sum, tree[2*v + 1].sum);
     }
 
-    T action(int v, int vl, int vr, int ql, int qr) {
+    T action(int v, int vl, int vr, int ql, int qr) noexcept {
         if (vr < ql || qr < vl) return identity;
         if (ql <= vl && vr <= qr) return tree[v].sum;
         push(v,vl,vr);
@@ -55,11 +55,11 @@ public:
         return func(action(2*v, vl, vmid, ql, qr), action(2*v + 1, vmid + 1, vr, ql, qr));
     }
 
-    T action (int ql, int qr) {
+    T action (int ql, int qr) noexcept {
         return action(1, 1, sz, ql, qr);
     }
 
-    void push(int v, int vl, int vr) {
+    void push(int v, int vl, int vr) noexcept {
         if (tree[v].isAssigned) {
             int vmid = (vl + vr) / 2;
             assignOnNode(2*v, vl, vmid, tree[v].assigned);
@@ -69,7 +69,7 @@ public:
         }
     }
 
-    void assignOnNode(int v, int vl, int vr, T x) {
+    void assignOnNode(int v, int vl, int vr, T x) noexcept {
         //For min/max to add a value
         //tree[v] = {tree[v].sum + x, true, tree[v].assigned + x};
 
@@ -79,7 +79,7 @@ public:
         //To set a value remove "tree[v].sum +", "tree[v].assigned +"
     }
 
-    void assignOnSegment(int v, int vl, int vr, int ql, int qr, T x) {
+    void assignOnSegment(int v, int vl, int vr, int ql, int qr, T x) noexcept {
         if (vr < ql || qr < vl) return;
         if (ql <= vl && vr <= qr) {
             assignOnNode(v,vl,vr,x);
@@ -92,15 +92,15 @@ public:
         recalculate(v);
     }
 
-    void assignOnSegment(int ql, int qr, T x) {
+    void assignOnSegment(int ql, int qr, T x) noexcept {
         assignOnSegment(1, 1, sz, ql, qr, x);
     }
 
-    void assignOnSingleNode(int q, T x) {
+    void assignOnSingleNode(int q, T x) noexcept {
         assignOnSegment(1, 1, sz, q, q, x);
     }
 
-    T func(T a, T b) {
+    T func(T a, T b) noexcept {
         return a + b;
     }
 };
