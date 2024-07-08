@@ -6,12 +6,13 @@ using namespace std;
 template<
   class Key,
   class T,
-  class Compare = less<Key>,
-  class Allocator = allocator<pair<const Key, T>>>
+  class Compare = std::less<Key>,
+  class Allocator = std::allocator<std::pair<const Key, T>>>
 class AVLTree {
-  typedef pair<const Key, T> value_type;
-  typedef AVLTree<Key, T, Compare, Allocator> tree_type;
   class Node;
+  typedef std::pair<const Key, T> value_type;
+  typedef AVLTree<Key, T, Compare, Allocator> tree_type;
+  typedef std::shared_ptr<Node> NodePtr;
 
  public:
   class Iterator;
@@ -19,7 +20,7 @@ class AVLTree {
 
   AVLTree() : root(nullptr), head(nullptr), tail(nullptr) {}
 
-  AVLTree(const initializer_list<value_type> &lst) {
+  AVLTree(const std::initializer_list<value_type> &lst) {
     for (const auto &x : lst)
       insert(x);
   }
@@ -30,12 +31,12 @@ class AVLTree {
   }
 
   [[nodiscard]] T &at(const Key &key_) {
-    if (!contains(key_)) throw out_of_range("key does not exist");
+    if (!contains(key_)) throw std::out_of_range("key does not exist");
     return find(key_)->value;
   }
 
   [[nodiscard]] const T &at(const Key &key_) const {
-    if (!contains(key_)) throw out_of_range("key does not exist");
+    if (!contains(key_)) throw std::out_of_range("key does not exist");
     return find(key_)->value;
   }
 
@@ -50,8 +51,7 @@ class AVLTree {
       tail = root;
       return;
     }
-    shared_ptr<Node>
-      place = find(key_, [](shared_ptr<Node> n) { n->height++; });
+    NodePtr place = find(key_, [](NodePtr n) { n->height++; });
     if (Compare{}(place->key(), key_))
       place->right = allocate_shared<Node>(alloc, pair_, place);
     else
@@ -65,27 +65,34 @@ class AVLTree {
   }
 
   void erase(const Key &key_) {
-    shared_ptr<Node> place = find(key_);
+    NodePtr place = find(key_).curr;
     if (place == nullptr) return;
-    if (key_ == head->key_)
+    if (key_ == head->key())
       head = successor(head);
-    else if (key_ == tail->key_)
+    else if (key_ == tail->key())
       tail = predecessor(tail);
     --size_;
 
     // if 2 children
     while (place->left != nullptr && place->right != nullptr) {
-      shared_ptr<Node> succ = successor(place);
+      NodePtr succ = successor(place);
 
-      swap(place->key_, succ->key_);
+      swap(const_cast<Key&>(place->keyValuePair.first),
+      const_cast<Key&>(succ->keyValuePair.first));
+
+      swap(place->keyValuePair.second, succ->keyValuePair.second);
+
       place = succ;
     }
     // one or no children
-    shared_ptr<Node>
+    NodePtr
       child = place->left == nullptr ? place->right : place->left;
 
     if (child != nullptr) {
-      swap(place->key_, child->key_);
+      swap(const_cast<Key&>(place->keyValuePair.first),
+           const_cast<Key&>(child->keyValuePair.first));
+
+      swap(place->keyValuePair.second, child->keyValuePair.second);
       place->right = nullptr;
       place->left = nullptr;
       recalculateHeight(place);
@@ -97,7 +104,7 @@ class AVLTree {
   }
 
   [[nodiscard]] Iterator find(Key key_) {
-    shared_ptr<Node> node = root;
+    NodePtr node = root;
 
     while (node != nullptr) {
       if (Compare{}(key_, node->key()) && node->left != nullptr
@@ -150,8 +157,9 @@ class AVLTree {
   }
 
   class Iterator {
+    friend class AVLTree;
    public:
-    Iterator(tree_type *tree, shared_ptr<Node> node_)
+    Iterator(tree_type *tree, NodePtr node_)
       : parentTree(tree), curr(std::move(node_)) {}
     Iterator(const Iterator &iter_) = default;
     Iterator(Iterator &&iter_) = default;
@@ -200,13 +208,13 @@ class AVLTree {
     }
 
    protected:
-    shared_ptr<Node> curr;
+    NodePtr curr;
     tree_type *parentTree;
   };
 
   class reversedIterator: public Iterator {
    public:
-    reversedIterator(tree_type *tree, shared_ptr<Node> node_)
+    reversedIterator(tree_type *tree, NodePtr node_)
       : Iterator(tree, node_) {}
     reversedIterator operator++() {
       if (!this->curr) return *this;
@@ -239,31 +247,38 @@ class AVLTree {
     }
   };
 
+  // Needed to resolve circular reference inside Node class,
+  // weak_ptr is hard to implement at this stage
   ~AVLTree() {
-    clear();
+    vector<NodePtr> toDestroy;
+    toDestroy.reserve(size());
+    for (auto it = begin(); it != end(); ++it)
+      toDestroy.push_back(it.curr);
+    for (auto& node: toDestroy)
+      node->~Node();
   }
 
  private:
-  shared_ptr<Node> root, tail, head;
+  NodePtr root, tail, head;
   size_t size_ = 0;
   Allocator alloc;
 
-  [[nodiscard]] shared_ptr<Node>
-  subtreeMaximum(shared_ptr<Node> node) const noexcept {
+  [[nodiscard]] NodePtr
+  subtreeMaximum(NodePtr node) const noexcept {
     while (node && node->right != nullptr)
       node = node->right;
     return node;
   }
 
-  [[nodiscard]] shared_ptr<Node>
-  subtreeMinimum(shared_ptr<Node> node) const noexcept {
+  [[nodiscard]] NodePtr
+  subtreeMinimum(NodePtr node) const noexcept {
     while (node && node->left != nullptr)
       node = node->left;
     return node;
   }
 
-  [[nodiscard]] shared_ptr<Node> findClosest(const Key &key_) const {
-    shared_ptr<Node> node = root;
+  [[nodiscard]] NodePtr findClosest(const Key &key_) const {
+    NodePtr node = root;
     while (node != nullptr) {
       if (key_ == node->key_) break;
       else if (key_ > node->key_ && node->right != nullptr)
@@ -276,14 +291,14 @@ class AVLTree {
     return node;
   }
 
-  shared_ptr<Node> successor(shared_ptr<Node> node) {
+  NodePtr successor(NodePtr node) {
     if (node == nullptr) {
       return nullptr;
     }
     if (node->right != nullptr) {
       return subtreeMinimum(node->right);
     } else {
-      shared_ptr<Node> y = node->parent;
+      NodePtr y = node->parent;
       while (y != nullptr && y->parent != nullptr && node == y->right) {
         node = y;
         y = y->parent;
@@ -293,7 +308,7 @@ class AVLTree {
     }
   }
 
-  shared_ptr<Node> predecessor(shared_ptr<Node> node) {
+  NodePtr predecessor(NodePtr node) {
     if (node == nullptr) {
       return nullptr;
     }
@@ -311,7 +326,7 @@ class AVLTree {
   }
 
   template<typename Action>
-  [[nodiscard]] shared_ptr<Node> find(const Key &key_, Action act) {
+  [[nodiscard]] NodePtr find(const Key &key_, Action act) {
     auto node = root;
     act(node);
 
@@ -329,25 +344,24 @@ class AVLTree {
     return node;
   }
 
-  void
-  updateParentsChild(shared_ptr<Node> oldChild, shared_ptr<Node> newChild) {
-    shared_ptr<Node> parent = oldChild->parent;
+  void updateParentsChild(NodePtr oldChild, NodePtr newChild) {
+    NodePtr parent = oldChild->parent;
     if (parent != nullptr && parent->left == oldChild)
       parent->left = newChild;
     else if (parent != nullptr && parent->right == oldChild)
       parent->right = newChild;
   }
 
-  void recalculateHeight(shared_ptr<Node> node) {
+  void recalculateHeight(NodePtr node) {
     while (node != nullptr) {
       node->height = max(node->rightHeight(), node->leftHeight()) + 1;
       node = node->parent;
     }
   }
 
-  void rotateLeft(shared_ptr<Node> localRoot) {
-    shared_ptr<Node> mid = localRoot->right;
-    shared_ptr<Node> midSubtree = mid->left;
+  void rotateLeft(NodePtr localRoot) {
+    NodePtr mid = localRoot->right;
+    NodePtr midSubtree = mid->left;
 
     mid->left = localRoot;
     localRoot->right = midSubtree;
@@ -359,15 +373,15 @@ class AVLTree {
     if (midSubtree != nullptr) midSubtree->parent = localRoot;
 
     localRoot->height =
-      1 + max(localRoot->leftHeight(), localRoot->rightHeight());
-    mid->height = 1 + max(mid->leftHeight(), mid->rightHeight());
+      1 + std::max(localRoot->leftHeight(), localRoot->rightHeight());
+    mid->height = 1 + std::max(mid->leftHeight(), mid->rightHeight());
 
     if (localRoot == root) root = mid;
   }
 
-  void rotateRight(shared_ptr<Node> localRoot) {
-    shared_ptr<Node> mid = localRoot->left;
-    shared_ptr<Node> midSubtree = mid->right;
+  void rotateRight(NodePtr localRoot) {
+    NodePtr mid = localRoot->left;
+    NodePtr midSubtree = mid->right;
 
     localRoot->left = midSubtree;
     mid->right = localRoot;
@@ -379,15 +393,15 @@ class AVLTree {
     if (midSubtree != nullptr) midSubtree->parent = localRoot;
 
     localRoot->height =
-      1 + max(localRoot->leftHeight(), localRoot->rightHeight());
-    mid->height = 1 + max(mid->leftHeight(), mid->rightHeight());
+      1 + std::max(localRoot->leftHeight(), localRoot->rightHeight());
+    mid->height = 1 + std::max(mid->leftHeight(), mid->rightHeight());
 
     if (localRoot == root) root = mid;
   }
 
-  void rotateRightLeft(shared_ptr<Node> localRoot) {
-    shared_ptr<Node> mid = localRoot->left;
-    shared_ptr<Node> localLeaf = mid->right;
+  void rotateRightLeft(NodePtr localRoot) {
+    NodePtr mid = localRoot->left;
+    NodePtr localLeaf = mid->right;
 
     mid->right = localLeaf->left;
     localRoot->left = localLeaf->right;
@@ -403,18 +417,18 @@ class AVLTree {
     if (localRoot->left != nullptr) localRoot->left->parent = localRoot;
     if (mid->right != nullptr) mid->right->parent = mid;
 
-    mid->height = 1 + max(mid->leftHeight(), mid->rightHeight());
+    mid->height = 1 + std::max(mid->leftHeight(), mid->rightHeight());
     localRoot->height =
-      1 + max(localRoot->leftHeight(), localRoot->rightHeight());
+      1 + std::max(localRoot->leftHeight(), localRoot->rightHeight());
     localLeaf->height =
-      1 + max(localLeaf->leftHeight(), localLeaf->rightHeight());
+      1 + std::max(localLeaf->leftHeight(), localLeaf->rightHeight());
 
     if (localRoot == root) root = localLeaf;
   }
 
-  void rotateLeftRight(shared_ptr<Node> localRoot) {
-    shared_ptr<Node> mid = localRoot->right;
-    shared_ptr<Node> localLeaf = mid->left;
+  void rotateLeftRight(NodePtr localRoot) {
+    NodePtr mid = localRoot->right;
+    NodePtr localLeaf = mid->left;
 
     mid->left = localLeaf->left;
     localRoot->right = localLeaf->right;
@@ -430,17 +444,17 @@ class AVLTree {
     if (localRoot->right != nullptr) localRoot->right->parent = localRoot;
     if (mid->left != nullptr) mid->left->parent = mid;
 
-    mid->height = 1 + max(mid->leftHeight(), mid->rightHeight());
+    mid->height = 1 + std::max(mid->leftHeight(), mid->rightHeight());
     localRoot->height =
-      1 + max(localRoot->leftHeight(), localRoot->rightHeight());
+      1 + std::max(localRoot->leftHeight(), localRoot->rightHeight());
     localLeaf->height =
-      1 + max(localLeaf->leftHeight(), localLeaf->rightHeight());
+      1 + std::max(localLeaf->leftHeight(), localLeaf->rightHeight());
 
     if (localRoot == root) root = localLeaf;
   }
 
   void balance() {
-    shared_ptr<Node> node = root;
+    NodePtr node = root;
     while (true) {
       if (node->left != nullptr && abs(node->left->bf()) > 1)
         node = node->left;
@@ -463,11 +477,11 @@ class AVLTree {
   class Node {
    public:
     int height;
-    shared_ptr<Node> left, right, parent;
+    NodePtr left, right, parent;
     value_type keyValuePair;
 
     Node() = delete;
-    Node(value_type pair_, shared_ptr<Node> parent)
+    Node(value_type pair_, NodePtr parent)
       : keyValuePair(pair_), parent(std::move(parent)) {
       init();
     }
@@ -478,8 +492,7 @@ class AVLTree {
     }
 
     void init() {
-      left = nullptr;
-      right = nullptr;
+      left = right =  nullptr;
       height = 1;
     }
 
@@ -500,5 +513,9 @@ class AVLTree {
     }
 
     int bf() { return leftHeight() - rightHeight(); }
+
+    ~Node() {
+      left = right = parent = nullptr;
+    }
   };
 };
