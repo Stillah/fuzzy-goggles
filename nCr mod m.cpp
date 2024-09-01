@@ -14,7 +14,7 @@ ll power(ll x, ll n) {
 }
 
 ll inverse(ll x) {
-  return power(x, mod-2);
+  return power(x % mod, mod-2);
 }
 
 ll nCk(ll n, ll k) {
