@@ -47,6 +47,7 @@ class Matrix {
       for (int j = 0; j < diffMatrix.n; j++) {
         for (int inner = 0; inner < n; inner++) {
           new_matrix[i][j] += ((matrix[i][inner] % mod) * (diffMatrix[inner][j] % mod)) % mod;
+          new_matrix[i][j] %= mod;
         }
       }
     }
