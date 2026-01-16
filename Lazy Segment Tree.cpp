@@ -13,7 +13,7 @@ public:
 };
 
 //To change from sum segment tree to other segment tree, change func(T a, T b), assignOnNode(int v, int vl, int vr, T x)
-//and identity
+//and identity (and what action returns for min/max)
 template <typename T>
 class SegmentTree {
 public:
@@ -48,7 +48,7 @@ public:
     }
 
     T action(int v, int vl, int vr, int ql, int qr) noexcept {
-        if (vr < ql || qr < vl) return identity;
+        if (vr < ql || qr < vl) return identity; // may need to change e.g if have negative numbers with max
         if (ql <= vl && vr <= qr) return tree[v].sum;
         push(v,vl,vr);
         int vmid = (vl + vr) / 2;
