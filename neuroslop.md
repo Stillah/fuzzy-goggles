@@ -173,10 +173,3 @@ Sources marked † were located through the context search for this proposal; bi
 26. Lehman, M. M. *Programs, Life Cycles, and LAnthropic of Software Evolution.* Proceedings of the IEEE, 68(9), 1980.
 27. Kruchten, P., Nord, R. L., Ozkaya, I. *Technical Debt: From Metaphor to Theory and Practice.* IEEE Software, 29(6), 2012.
 
-**Tooling (to be cited as software artefacts with pinned versions in the thesis)**
-
-Ruff, Pylint, mypy, pyright, Bandit, Semgrep, import-linter/Grimp, Tach, deptry, Vulture, jscpd, Radon, Lizard, Wily, Griffe, pyupgrade, pip-audit, coverage.py, diff-cover, mutmut, tree-sitter, scip-python, LibCST, ast-grep, Kùzu/Neo4j, SonarQube, CodeQL.
-
----
-
-A note on two things worth settling with your supervisor early. First, the benchmark papers are very recent and I could only verify their details through secondary sources and abstract pages — confirm the arXiv identifiers and whether harness code is actually released before committing to all three in scope. Second, H4 is the uncomfortable hypothesis: if most of the gain comes from the guardrail layer buying extra iterations rather than from better decisions, that reframes the contribution. Budget-matched comparison belongs in the design from day one, not as a reviewer-appeasing afterthought.
